@@ -17,11 +17,12 @@ require_dir() {
   fi
 }
 
-require_file Dockerfile.flowstate
 require_file docker-compose.yml
 require_file .env.example
-require_file scripts/entrypoint.sh
 require_file scripts/write-flowstate-config.sh
+require_file deploy/vps/flowstate.service
+require_file deploy/vps/caddy.example.Caddyfile
+require_file deploy/vps/nginx.example.conf
 require_file deploy/vps/README.md
 require_file deploy/vercel/README.md
 require_file swarms/npr-onboarding.yml

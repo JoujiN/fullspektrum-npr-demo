@@ -54,7 +54,6 @@ FLOWSTATE_AUTH_SECRET=...
 FLOWSTATE_AUTH_CSRF_KEY=...
 FLOWSTATE_AUTH_ALLOWED_ORIGINS=https://your-vercel-app.vercel.app
 FULLSPEKTRUM_ASSET_ROOT=/opt/fullspektrum/npr-demo
-QDRANT_URL=http://127.0.0.1:6333
 ```
 
 Generate auth secrets with:
@@ -88,7 +87,12 @@ Record the deployed FlowState revision:
 git rev-parse HEAD
 ```
 
-## 4. Start Private Qdrant
+## 4. Choose A Demo Mode
+
+1. No recall / no embeddings: leave `QDRANT_URL`, `OLLAMA_HOST`, and `EMBEDDING_MODEL` empty. Skip the Qdrant step below. This is useful for API/auth/frontend smoke tests, but recall-dependent behavior will be unavailable.
+2. Qdrant + external embeddings: set `QDRANT_URL=http://127.0.0.1:6333`, set `OLLAMA_HOST` to a working external or host-local embedding service, and set `EMBEDDING_MODEL=nomic-embed-text`.
+
+## 5. Start Private Qdrant
 
 From `/opt/fullspektrum/npr-demo`:
 
@@ -100,32 +104,12 @@ curl http://127.0.0.1:6333/healthz
 
 The Compose file publishes Qdrant only on `127.0.0.1`. Do not expose `6333/tcp` or `6334/tcp` publicly.
 
-## 5. Install The systemd Service
+## 6. Install The systemd Service
 
-Create `/etc/systemd/system/flowstate.service`:
+Install the concrete unit file from this repo:
 
-```ini
-[Unit]
-Description=FlowState backend for FullSpektrum NPR demo
-After=network-online.target docker.service
-Wants=network-online.target
-
-[Service]
-Type=simple
-User=flowstate
-Group=flowstate
-EnvironmentFile=/etc/fullspektrum/flowstate.env
-Environment=XDG_CONFIG_HOME=/var/lib/fullspektrum/flowstate/config
-Environment=XDG_DATA_HOME=/var/lib/fullspektrum/flowstate/data
-WorkingDirectory=/var/lib/fullspektrum/flowstate
-ExecStartPre=/usr/local/bin/write-flowstate-config
-ExecStartPre=-/usr/local/bin/flowstate memory-tools install
-ExecStart=/usr/local/bin/flowstate serve --host ${FLOWSTATE_HOST} --port ${FLOWSTATE_PORT}
-Restart=always
-RestartSec=5
-
-[Install]
-WantedBy=multi-user.target
+```bash
+sudo install -m 0644 deploy/vps/flowstate.service /etc/systemd/system/flowstate.service
 ```
 
 Start it:
@@ -137,7 +121,9 @@ sudo systemctl status flowstate
 curl http://127.0.0.1:8080/
 ```
 
-## 6. Expose Only The API Through HTTPS
+`ExecStartPre=/usr/local/bin/write-flowstate-config` rewrites the generated FlowState config on every restart, so changes in `/etc/fullspektrum/flowstate.env` are picked up after `sudo systemctl restart flowstate`.
+
+## 7. Expose Only The API Through HTTPS
 
 Open only:
 
@@ -147,35 +133,16 @@ Open only:
 
 Keep `8080`, `6333`, `6334`, and any Ollama port private.
 
-Example Caddy site:
+Use one of the concrete examples in this repo and replace `api.example.com`:
 
-```caddyfile
-api.example.com {
-	reverse_proxy 127.0.0.1:8080
-}
-```
-
-Example nginx site:
-
-```nginx
-server {
-    listen 443 ssl http2;
-    server_name api.example.com;
-
-    location / {
-        proxy_pass http://127.0.0.1:8080;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
+```bash
+deploy/vps/caddy.example.Caddyfile
+deploy/vps/nginx.example.conf
 ```
 
 Set `FLOWSTATE_AUTH_SECURE_COOKIES=true` and include the Vercel frontend origin in `FLOWSTATE_AUTH_ALLOWED_ORIGINS`.
 
-## 7. Optional External Ollama
+## 8. Optional External Ollama
 
 Ollama is not part of the default Docker Compose stack. If the demo needs local embeddings, run Ollama on a separate GPU host or as a host-local service, then set:
 

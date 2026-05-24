@@ -1,0 +1,21 @@
+[Unit]
+Description=FlowState backend for FullSpektrum NPR demo
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=flowstate
+Group=flowstate
+EnvironmentFile=/etc/fullspektrum/flowstate.env
+Environment=XDG_CONFIG_HOME=/var/lib/fullspektrum/flowstate/config
+Environment=XDG_DATA_HOME=/var/lib/fullspektrum/flowstate/data
+WorkingDirectory=/var/lib/fullspektrum/flowstate
+ExecStartPre=/usr/local/bin/write-flowstate-config
+ExecStartPre=-/usr/local/bin/flowstate memory-tools install
+ExecStart=/usr/local/bin/flowstate serve --host ${FLOWSTATE_HOST} --port ${FLOWSTATE_PORT}
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

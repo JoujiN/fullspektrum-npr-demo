@@ -3,10 +3,11 @@ set -eu
 
 CONFIG_BASE="${XDG_CONFIG_HOME:-/var/lib/fullspektrum/flowstate/config}"
 DATA_BASE="${XDG_DATA_HOME:-/var/lib/fullspektrum/flowstate/data}"
-ASSET_ROOT="${FULLSPEKTRUM_ASSET_ROOT:-/opt/fullspektrum}"
+ASSET_ROOT="${FULLSPEKTRUM_ASSET_ROOT:-/opt/fullspektrum/npr-demo}"
 CONFIG_DIR="$CONFIG_BASE/flowstate"
 DATA_DIR="$DATA_BASE/flowstate"
 CONFIG_FILE="$CONFIG_DIR/config.yaml"
+CONFIG_TMP="$CONFIG_FILE.tmp"
 
 mkdir -p "$CONFIG_DIR/agents" "$CONFIG_DIR/skills" "$CONFIG_DIR/swarms" "$CONFIG_DIR/schemas" "$CONFIG_DIR/gates" "$DATA_DIR"
 
@@ -24,23 +25,37 @@ sync_dir "$ASSET_ROOT/skills" "$CONFIG_DIR/skills"
 sync_dir "$ASSET_ROOT/swarms" "$CONFIG_DIR/swarms"
 sync_dir "$ASSET_ROOT/schemas" "$CONFIG_DIR/schemas"
 
-if [ -f "$CONFIG_FILE" ] && [ "${FULLSPEKTRUM_REWRITE_CONFIG:-false}" != "true" ]; then
-  exit 0
-fi
-
-cat > "$CONFIG_FILE" <<CONFIG
+cat > "$CONFIG_TMP" <<CONFIG
 providers:
   default: anthropic
   anthropic:
     model: "${ANTHROPIC_MODEL:-claude-sonnet-4-20250514}"
+CONFIG
+
+if [ -n "${OLLAMA_HOST:-}" ]; then
+  cat >> "$CONFIG_TMP" <<CONFIG
   ollama:
-    host: "${OLLAMA_HOST:-http://127.0.0.1:11434}"
-    model: llama3.2
+    host: "${OLLAMA_HOST}"
+    model: "${OLLAMA_MODEL:-llama3.2}"
+CONFIG
+fi
+
+if [ -n "${QDRANT_URL:-}" ]; then
+  cat >> "$CONFIG_TMP" <<CONFIG
 qdrant:
-  url: "${QDRANT_URL:-http://127.0.0.1:6333}"
+  url: "${QDRANT_URL}"
   collection: "${QDRANT_COLLECTION:-fullspektrum-npr}"
   api_key: "${QDRANT_API_KEY:-}"
-embedding_model: "${EMBEDDING_MODEL:-nomic-embed-text}"
+CONFIG
+fi
+
+if [ -n "${EMBEDDING_MODEL:-}" ]; then
+  cat >> "$CONFIG_TMP" <<CONFIG
+embedding_model: "${EMBEDDING_MODEL}"
+CONFIG
+fi
+
+cat >> "$CONFIG_TMP" <<CONFIG
 agent_dir: "$CONFIG_DIR/agents"
 skill_dir: "$CONFIG_DIR/skills"
 schema_dir: "$CONFIG_DIR/schemas"
@@ -59,3 +74,5 @@ auth:
   allowed_origins:
 $(printf '%s' "${FLOWSTATE_AUTH_ALLOWED_ORIGINS:-localhost:*,127.0.0.1:*}" | tr ',' '\n' | sed 's/^/    - "/; s/$/"/')
 CONFIG
+
+mv "$CONFIG_TMP" "$CONFIG_FILE"

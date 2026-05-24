@@ -8,7 +8,7 @@ FlowState stays the generic runtime and should remain untouched by this repo. Th
 
 - FlowState backend binary built from a pinned FlowState ref and run with systemd on the VPS.
 - FlowState config and data under `/var/lib/fullspektrum/flowstate`.
-- FullSpektrum NPR agents, skills, swarms, schemas, and config templates from this repo.
+- FullSpektrum NPR agents, skills, swarms, schemas, and generated FlowState config from this repo.
 - Qdrant as an optional private Docker Compose sidecar bound to `127.0.0.1`.
 - FlowState web UI hosted separately on Vercel.
 - Ollama as an optional external service; GPU placement is handled outside this repo.
@@ -17,6 +17,7 @@ FlowState stays the generic runtime and should remain untouched by this repo. Th
 
 - The FlowState web container and nginx static/proxy config.
 - The default FlowState API container from Compose.
+- The leftover FlowState Docker runtime helper.
 - The default Ollama Docker service and Ollama volume.
 - Full-stack bootstrap commands that tried to run API, web, Qdrant, and embeddings together.
 
@@ -27,10 +28,14 @@ The default deployment path is now backend-only: systemd runs FlowState, Compose
 ```bash
 cp .env.example .env
 make check
-make up
 ```
 
-`make up` starts Qdrant only. To run the actual backend on a VPS, follow [deploy/vps/README.md](deploy/vps/README.md). To connect the Vercel-hosted frontend, follow [deploy/vercel/README.md](deploy/vercel/README.md).
+To run the actual backend on a VPS, follow [deploy/vps/README.md](deploy/vps/README.md). To connect the Vercel-hosted frontend, follow [deploy/vercel/README.md](deploy/vercel/README.md).
+
+## Demo Modes
+
+1. No recall / no embeddings: leave `QDRANT_URL`, `OLLAMA_HOST`, and `EMBEDDING_MODEL` empty, and do not start Qdrant. This is the smallest mode for API/auth/frontend smoke tests; recall-dependent behavior will be unavailable.
+2. Qdrant + external embeddings: run `make up` for private Qdrant, set `QDRANT_URL=http://127.0.0.1:6333`, and point `OLLAMA_HOST` plus `EMBEDDING_MODEL` at a working external embedding service.
 
 Start the demo from chat in the FlowState web UI:
 

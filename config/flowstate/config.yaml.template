@@ -23,9 +23,8 @@ auth:
   secret: "${FLOWSTATE_AUTH_SECRET}"
   principal_id: fullspektrum-demo
   display_name: FullSpektrum Demo
-  secure_cookies: false
+  secure_cookies: true
   csrf_key: "${FLOWSTATE_AUTH_CSRF_KEY}"
   allowed_origins:
-    - localhost:*
-    - 127.0.0.1:*
-
+    - https://your-vercel-app.vercel.app
+    - http://localhost:5173

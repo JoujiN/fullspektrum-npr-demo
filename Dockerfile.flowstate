@@ -8,7 +8,12 @@ RUN apt-get update \
   && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /src
-RUN git clone --depth 1 --branch "$FLOWSTATE_REF" "$FLOWSTATE_REPO" flowstate
+RUN test -n "$FLOWSTATE_REF" \
+  && git init flowstate \
+  && cd flowstate \
+  && git remote add origin "$FLOWSTATE_REPO" \
+  && git fetch --depth 1 origin "$FLOWSTATE_REF" \
+  && git checkout --detach FETCH_HEAD
 
 WORKDIR /src/flowstate
 RUN make build

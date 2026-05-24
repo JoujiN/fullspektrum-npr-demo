@@ -2,50 +2,37 @@
 
 This repository packages the FullSpektrum NPR onboarding demo outside the core FlowState repository.
 
-FlowState stays the generic runtime. This repo owns the downstream application layer: demo configuration, NPR swarm assets, Docker packaging, Qdrant/Ollama sidecars, and provider-specific deployment notes.
+FlowState stays the generic runtime and should remain untouched by this repo. This repo owns the downstream NPR demo assets and backend deployment support only.
 
-## What This Runs
+## Architecture
 
-- FlowState API from a pinned FlowState git ref.
-- FlowState web UI from the same pinned FlowState git ref.
-- Qdrant with a persistent Docker volume.
-- Ollama for the `nomic-embed-text` embedding model.
-- FullSpektrum NPR swarm, agents, skills, and schemas mounted into FlowState config.
+- FlowState backend binary built from a pinned FlowState ref and run with systemd on the VPS.
+- FlowState config and data under `/var/lib/fullspektrum/flowstate`.
+- FullSpektrum NPR agents, skills, swarms, schemas, and config templates from this repo.
+- Qdrant as an optional private Docker Compose sidecar bound to `127.0.0.1`.
+- FlowState web UI hosted separately on Vercel.
+- Ollama as an optional external service; GPU placement is handled outside this repo.
+
+## What Was Removed From The Default Stack
+
+- The FlowState web container and nginx static/proxy config.
+- The default FlowState API container from Compose.
+- The default Ollama Docker service and Ollama volume.
+- Full-stack bootstrap commands that tried to run API, web, Qdrant, and embeddings together.
+
+The default deployment path is now backend-only: systemd runs FlowState, Compose only provides private sidecars, and Vercel owns the frontend.
 
 ## Quickstart
 
 ```bash
 cp .env.example .env
+make check
+make up
 ```
 
-Edit `.env` and set at least:
+`make up` starts Qdrant only. To run the actual backend on a VPS, follow [deploy/vps/README.md](deploy/vps/README.md). To connect the Vercel-hosted frontend, follow [deploy/vercel/README.md](deploy/vercel/README.md).
 
-```bash
-ANTHROPIC_API_KEY=...
-FLOWSTATE_AUTH_SECRET=...
-FLOWSTATE_AUTH_CSRF_KEY=...
-```
-
-Generate the auth secrets with:
-
-```bash
-openssl rand -base64 32
-openssl rand -base64 32
-```
-
-Start the stack:
-
-```bash
-make bootstrap
-```
-
-Open:
-
-```text
-http://localhost:8081
-```
-
-Start the demo from chat:
+Start the demo from chat in the FlowState web UI:
 
 ```text
 @npr-onboarding Start a new NPR onboarding for userId=demo-user
@@ -53,15 +40,7 @@ Start the demo from chat:
 
 ## Host Choice
 
-The packaging is deliberately VM-friendly. A short-term fundraising demo should run cleanly on one small Linux host with Docker Compose.
-
-Recommended shapes:
-
-- AWS Lightsail 4 GB for a main-provider demo with low ops friction.
-- AWS EC2 `t4g.small` only if ARM64 and 2 GB RAM are acceptable.
-- GCP Compute Engine paid VM or trial credits when GCP is preferred.
-- Oracle Always Free only after capacity and boot have already been proven.
-- Hetzner 4 GB when cheapest reliable paid hosting matters; it is not free.
+The packaging is VM-friendly but no longer needs one host to run the whole web/API/embedding appliance. A short-term fundraising demo can use one small Linux host for FlowState plus Qdrant, with the web UI on Vercel and embeddings hosted separately if needed.
 
 See [docs/hosting.md](docs/hosting.md).
 
@@ -73,21 +52,23 @@ Do not upstream this repository into FlowState. If this packaging reveals a gene
 
 ```bash
 make check
-make build
 make up
-make pull-embedding
 make logs
+make ps
 make down
 ```
 
+These commands manage the private Qdrant sidecar only.
+
 ## Data
 
-Docker named volumes hold demo state:
+FlowState should use:
 
-- `fullspektrum-flowstate-config`
-- `fullspektrum-flowstate-data`
+- `/var/lib/fullspektrum/flowstate/config`
+- `/var/lib/fullspektrum/flowstate/data`
+
+Qdrant uses the Docker named volume:
+
 - `fullspektrum-qdrant-data`
-- `fullspektrum-ollama-data`
 
 For temporary fundraising demos, snapshot or export these before deleting the host if the session history matters.
-

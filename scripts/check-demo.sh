@@ -18,20 +18,19 @@ require_dir() {
 }
 
 require_file Dockerfile.flowstate
-require_file Dockerfile.web
 require_file docker-compose.yml
 require_file .env.example
 require_file scripts/entrypoint.sh
 require_file scripts/write-flowstate-config.sh
+require_file deploy/vps/README.md
+require_file deploy/vercel/README.md
 require_file swarms/npr-onboarding.yml
 require_dir agents
 require_dir skills
 require_dir schemas
 
-if command -v docker >/dev/null 2>&1 && [[ -f .env ]]; then
+if command -v docker >/dev/null 2>&1; then
   docker compose config >/dev/null
-elif command -v docker >/dev/null 2>&1; then
-  printf 'warning: skipped docker compose config validation until .env exists\n' >&2
 else
   printf 'warning: docker not found; skipped docker compose config validation\n' >&2
 fi

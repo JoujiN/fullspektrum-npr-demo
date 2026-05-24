@@ -3,6 +3,7 @@ set -eu
 
 CONFIG_BASE="${XDG_CONFIG_HOME:-/var/lib/fullspektrum/flowstate/config}"
 DATA_BASE="${XDG_DATA_HOME:-/var/lib/fullspektrum/flowstate/data}"
+ASSET_ROOT="${FULLSPEKTRUM_ASSET_ROOT:-/opt/fullspektrum}"
 CONFIG_DIR="$CONFIG_BASE/flowstate"
 DATA_DIR="$DATA_BASE/flowstate"
 CONFIG_FILE="$CONFIG_DIR/config.yaml"
@@ -18,10 +19,10 @@ sync_dir() {
   fi
 }
 
-sync_dir /opt/fullspektrum/agents "$CONFIG_DIR/agents"
-sync_dir /opt/fullspektrum/skills "$CONFIG_DIR/skills"
-sync_dir /opt/fullspektrum/swarms "$CONFIG_DIR/swarms"
-sync_dir /opt/fullspektrum/schemas "$CONFIG_DIR/schemas"
+sync_dir "$ASSET_ROOT/agents" "$CONFIG_DIR/agents"
+sync_dir "$ASSET_ROOT/skills" "$CONFIG_DIR/skills"
+sync_dir "$ASSET_ROOT/swarms" "$CONFIG_DIR/swarms"
+sync_dir "$ASSET_ROOT/schemas" "$CONFIG_DIR/schemas"
 
 if [ -f "$CONFIG_FILE" ] && [ "${FULLSPEKTRUM_REWRITE_CONFIG:-false}" != "true" ]; then
   exit 0
@@ -33,10 +34,10 @@ providers:
   anthropic:
     model: "${ANTHROPIC_MODEL:-claude-sonnet-4-20250514}"
   ollama:
-    host: "${OLLAMA_HOST:-http://ollama:11434}"
+    host: "${OLLAMA_HOST:-http://127.0.0.1:11434}"
     model: llama3.2
 qdrant:
-  url: "${QDRANT_URL:-http://qdrant:6333}"
+  url: "${QDRANT_URL:-http://127.0.0.1:6333}"
   collection: "${QDRANT_COLLECTION:-fullspektrum-npr}"
   api_key: "${QDRANT_API_KEY:-}"
 embedding_model: "${EMBEDDING_MODEL:-nomic-embed-text}"
@@ -53,9 +54,8 @@ auth:
   secret: "${FLOWSTATE_AUTH_SECRET:-}"
   principal_id: "${FLOWSTATE_AUTH_PRINCIPAL_ID:-fullspektrum-demo}"
   display_name: "${FLOWSTATE_AUTH_DISPLAY_NAME:-FullSpektrum Demo}"
-  secure_cookies: ${FLOWSTATE_AUTH_SECURE_COOKIES:-false}
+  secure_cookies: ${FLOWSTATE_AUTH_SECURE_COOKIES:-true}
   csrf_key: "${FLOWSTATE_AUTH_CSRF_KEY:-}"
   allowed_origins:
 $(printf '%s' "${FLOWSTATE_AUTH_ALLOWED_ORIGINS:-localhost:*,127.0.0.1:*}" | tr ',' '\n' | sed 's/^/    - "/; s/$/"/')
 CONFIG
-

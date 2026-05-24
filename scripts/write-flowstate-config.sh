@@ -1,5 +1,6 @@
 #!/usr/bin/env sh
 set -eu
+umask 077
 
 CONFIG_BASE="${XDG_CONFIG_HOME:-/var/lib/fullspektrum/flowstate/config}"
 DATA_BASE="${XDG_DATA_HOME:-/var/lib/fullspektrum/flowstate/data}"
@@ -8,6 +9,8 @@ CONFIG_DIR="$CONFIG_BASE/flowstate"
 DATA_DIR="$DATA_BASE/flowstate"
 CONFIG_FILE="$CONFIG_DIR/config.yaml"
 CONFIG_TMP="$CONFIG_FILE.tmp"
+
+trap 'rm -f "$CONFIG_TMP"' EXIT
 
 mkdir -p "$CONFIG_DIR/agents" "$CONFIG_DIR/skills" "$CONFIG_DIR/swarms" "$CONFIG_DIR/schemas" "$CONFIG_DIR/gates" "$DATA_DIR"
 
@@ -25,6 +28,7 @@ sync_dir "$ASSET_ROOT/skills" "$CONFIG_DIR/skills"
 sync_dir "$ASSET_ROOT/swarms" "$CONFIG_DIR/swarms"
 sync_dir "$ASSET_ROOT/schemas" "$CONFIG_DIR/schemas"
 
+rm -f "$CONFIG_TMP"
 cat > "$CONFIG_TMP" <<CONFIG
 providers:
   default: anthropic
@@ -76,3 +80,4 @@ $(printf '%s' "${FLOWSTATE_AUTH_ALLOWED_ORIGINS:-localhost:*,127.0.0.1:*}" | tr 
 CONFIG
 
 mv "$CONFIG_TMP" "$CONFIG_FILE"
+chmod 0600 "$CONFIG_FILE"

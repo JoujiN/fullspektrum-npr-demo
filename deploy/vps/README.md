@@ -19,7 +19,7 @@ sudo apt-get install -y ca-certificates git make build-essential golang-go docke
 sudo systemctl enable --now docker
 ```
 
-Confirm the Go version matches the pinned FlowState ref before building:
+The distro `golang-go` package is convenient for bootstrapping, but confirm the version before building:
 
 ```bash
 go version
@@ -76,10 +76,26 @@ git clone "$FLOWSTATE_REPO" flowstate
 cd flowstate
 git fetch --depth 1 origin "$FLOWSTATE_REF"
 git checkout --detach FETCH_HEAD
-make build
+grep -E '^(go|toolchain) ' go.mod
+GOTOOLCHAIN=local make build
 sudo install -m 0755 build/flowstate /usr/local/bin/flowstate
 /usr/local/bin/flowstate --help
 ```
+
+For a deterministic demo build, use the exact Go version required by the pinned FlowState ref before running `make build`. Prefer the `toolchain` directive in FlowState's `go.mod` when present; otherwise use the approved patch release for the `go` directive's minor version:
+
+```bash
+GO_VERSION=<required version, for example 1.24.3>
+GO_ARCH=linux-amd64
+curl -fsSLO "https://go.dev/dl/go${GO_VERSION}.${GO_ARCH}.tar.gz"
+sudo rm -rf /usr/local/go
+sudo tar -C /usr/local -xzf "go${GO_VERSION}.${GO_ARCH}.tar.gz"
+export PATH="/usr/local/go/bin:$PATH"
+export GOTOOLCHAIN=local
+go version
+```
+
+Use `GO_ARCH=linux-arm64` on ARM64 hosts.
 
 Record the deployed FlowState revision:
 
@@ -123,7 +139,43 @@ curl http://127.0.0.1:8080/
 
 `ExecStartPre=/usr/local/bin/write-flowstate-config` rewrites the generated FlowState config on every restart, so changes in `/etc/fullspektrum/flowstate.env` are picked up after `sudo systemctl restart flowstate`.
 
-## 7. Expose Only The API Through HTTPS
+## 7. Pre-Demo Smoke Test
+
+No recall / no embeddings mode:
+
+```bash
+sudo sed -i 's#^QDRANT_URL=.*#QDRANT_URL=#' /etc/fullspektrum/flowstate.env
+sudo sed -i 's#^OLLAMA_HOST=.*#OLLAMA_HOST=#' /etc/fullspektrum/flowstate.env
+sudo sed -i 's#^EMBEDDING_MODEL=.*#EMBEDDING_MODEL=#' /etc/fullspektrum/flowstate.env
+sudo systemctl restart flowstate
+sudo stat -c '%a' /var/lib/fullspektrum/flowstate/config/flowstate/config.yaml | grep -qx 600
+! sudo grep -Eq '^(qdrant:|embedding_model:)' /var/lib/fullspektrum/flowstate/config/flowstate/config.yaml
+curl -fsS http://127.0.0.1:8080/ >/dev/null
+```
+
+Qdrant + external embeddings mode:
+
+```bash
+sudo docker compose ps qdrant
+curl -fsS http://127.0.0.1:6333/healthz
+```
+
+Set `QDRANT_URL=http://127.0.0.1:6333`, `OLLAMA_HOST`, and `EMBEDDING_MODEL` in `/etc/fullspektrum/flowstate.env`, then verify the external embedding service from the VPS. For Ollama-compatible services:
+
+```bash
+. /etc/fullspektrum/flowstate.env
+curl -fsS "$OLLAMA_HOST/api/tags" >/dev/null
+sudo systemctl restart flowstate
+sudo grep -E '^(qdrant:|embedding_model:)' /var/lib/fullspektrum/flowstate/config/flowstate/config.yaml
+```
+
+Vercel frontend to backend:
+
+- Open the Vercel web UI and sign in against the HTTPS API origin.
+- Start `@npr-onboarding Start a new NPR onboarding for userId=demo-smoke`.
+- Confirm the session cookie is set for the API origin, the chat response streams progressively, and `journalctl -u flowstate -n 100` shows no auth, CORS, or stream disconnect errors.
+
+## 8. Expose Only The API Through HTTPS
 
 Open only:
 
@@ -142,7 +194,7 @@ deploy/vps/nginx.example.conf
 
 Set `FLOWSTATE_AUTH_SECURE_COOKIES=true` and include the Vercel frontend origin in `FLOWSTATE_AUTH_ALLOWED_ORIGINS`.
 
-## 8. Optional External Ollama
+## 9. Optional External Ollama
 
 Ollama is not part of the default Docker Compose stack. If the demo needs local embeddings, run Ollama on a separate GPU host or as a host-local service, then set:
 

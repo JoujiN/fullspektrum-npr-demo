@@ -1,0 +1,78 @@
+services:
+  flowstate:
+    build:
+      context: .
+      dockerfile: Dockerfile.flowstate
+      args:
+        FLOWSTATE_REPO: ${FLOWSTATE_REPO:-https://github.com/baphled/flowstate.git}
+        FLOWSTATE_REF: ${FLOWSTATE_REF:-feature/vue-ui-rebase}
+    env_file:
+      - .env
+    environment:
+      XDG_CONFIG_HOME: /var/lib/fullspektrum/flowstate/config
+      XDG_DATA_HOME: /var/lib/fullspektrum/flowstate/data
+      FLOWSTATE_HOST: ${FLOWSTATE_HOST:-0.0.0.0}
+      PORT: ${FLOWSTATE_PORT:-8080}
+      QDRANT_URL: ${QDRANT_URL:-http://qdrant:6333}
+      QDRANT_COLLECTION: ${QDRANT_COLLECTION:-fullspektrum-npr}
+      OLLAMA_HOST: ${OLLAMA_HOST:-http://ollama:11434}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-nomic-embed-text}
+    depends_on:
+      qdrant:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+    volumes:
+      - flowstate-config:/var/lib/fullspektrum/flowstate/config
+      - flowstate-data:/var/lib/fullspektrum/flowstate/data
+      - ./agents:/opt/fullspektrum/agents:ro
+      - ./skills:/opt/fullspektrum/skills:ro
+      - ./swarms:/opt/fullspektrum/swarms:ro
+      - ./schemas:/opt/fullspektrum/schemas:ro
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+      args:
+        FLOWSTATE_REPO: ${FLOWSTATE_REPO:-https://github.com/baphled/flowstate.git}
+        FLOWSTATE_REF: ${FLOWSTATE_REF:-feature/vue-ui-rebase}
+    depends_on:
+      - flowstate
+    ports:
+      - "${WEB_PORT:-8081}:80"
+    restart: unless-stopped
+
+  qdrant:
+    image: qdrant/qdrant:v1.16.3
+    volumes:
+      - qdrant-data:/qdrant/storage
+    expose:
+      - "6333"
+      - "6334"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O- http://127.0.0.1:6333/healthz || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 15s
+    restart: unless-stopped
+
+  ollama:
+    image: ollama/ollama:latest
+    volumes:
+      - ollama-data:/root/.ollama
+    expose:
+      - "11434"
+    restart: unless-stopped
+
+volumes:
+  flowstate-config:
+    name: fullspektrum-flowstate-config
+  flowstate-data:
+    name: fullspektrum-flowstate-data
+  qdrant-data:
+    name: fullspektrum-qdrant-data
+  ollama-data:
+    name: fullspektrum-ollama-data

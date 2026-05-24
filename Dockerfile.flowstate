@@ -1,0 +1,30 @@
+FROM golang:1.24-bookworm AS build
+
+ARG FLOWSTATE_REPO=https://github.com/baphled/flowstate.git
+ARG FLOWSTATE_REF=feature/vue-ui-rebase
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends ca-certificates git make \
+  && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /src
+RUN git clone --depth 1 --branch "$FLOWSTATE_REF" "$FLOWSTATE_REPO" flowstate
+
+WORKDIR /src/flowstate
+RUN make build
+
+FROM debian:bookworm-slim
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends ca-certificates curl \
+  && rm -rf /var/lib/apt/lists/*
+
+COPY --from=build /src/flowstate/build/flowstate /usr/local/bin/flowstate
+COPY scripts/write-flowstate-config.sh /usr/local/bin/write-flowstate-config
+COPY scripts/entrypoint.sh /usr/local/bin/fullspektrum-entrypoint
+
+RUN chmod +x /usr/local/bin/flowstate /usr/local/bin/write-flowstate-config /usr/local/bin/fullspektrum-entrypoint
+
+EXPOSE 8080
+
+ENTRYPOINT ["fullspektrum-entrypoint"]

@@ -1,0 +1,23 @@
+schema_version: "1.0.0"
+id: npr-onboarding
+description: >
+  FullSpektrum NPR onboarding swarm. Guides a demo participant through a
+  structured onboarding conversation and produces a reviewable
+  Neuropsychographic Registry profile artefact.
+lead: npr-onboarding-lead
+members:
+  - npr-interviewer
+  - npr-profile-synthesist
+  - npr-safety-reviewer
+  - npr-demo-writer
+harness:
+  parallel: false
+  gates:
+    - name: npr-profile-shape
+      kind: builtin:result-schema
+      when: post-member
+      target: npr-profile-synthesist
+      schema_ref: npr-profile-v1
+context:
+  chain_prefix: npr-onboarding
+

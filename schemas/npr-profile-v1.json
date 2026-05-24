@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "npr-profile-v1",
+  "title": "FullSpektrum NPR Profile",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "user_id",
+    "summary",
+    "signal_areas",
+    "support_preferences",
+    "confidence",
+    "limitations"
+  ],
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "signal_areas": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "observations", "evidence", "confidence"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "observations": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "evidence": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "confidence": {
+            "type": "string",
+            "enum": ["low", "medium", "high"]
+          }
+        }
+      }
+    },
+    "support_preferences": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "confidence": {
+      "type": "string",
+      "enum": ["low", "medium", "high"]
+    },
+    "limitations": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}
+

@@ -1,25 +1,26 @@
-.PHONY: check build up down logs bootstrap pull-embedding ps
+.PHONY: check up down logs bootstrap ps qdrant-up qdrant-down qdrant-logs qdrant-ps
 
 check:
 	bash scripts/check-demo.sh
 
-build:
-	docker compose build
+up: qdrant-up
 
-up:
-	docker compose up -d --build
+qdrant-up:
+	docker compose up -d qdrant
 
-pull-embedding:
-	docker compose exec ollama ollama pull "$${EMBEDDING_MODEL:-nomic-embed-text}"
+bootstrap: check up
 
-bootstrap: check up pull-embedding
+down: qdrant-down
 
-down:
+qdrant-down:
 	docker compose down
 
-logs:
+logs: qdrant-logs
+
+qdrant-logs:
 	docker compose logs -f --tail=100
 
-ps:
-	docker compose ps
+ps: qdrant-ps
 
+qdrant-ps:
+	docker compose ps

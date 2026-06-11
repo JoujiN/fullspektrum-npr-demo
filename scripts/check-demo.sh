@@ -27,6 +27,7 @@ require_file deploy/vps/README.md
 require_file deploy/vercel/README.md
 require_file swarms/npr-onboarding.yml
 require_dir agents
+require_dir gates
 require_dir skills
 require_dir schemas
 

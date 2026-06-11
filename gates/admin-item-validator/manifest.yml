@@ -1,0 +1,9 @@
+name: admin-item-validator
+description: >
+  Validates that the life-admin-lead triage output has a non-empty tasks array,
+  and that every task has a non-empty deadline plus an integer priority score
+  from 1 to 4 before specialist agents run.
+version: "0.2.0"
+exec: ./gate.py
+timeout: 5s
+policy: {}

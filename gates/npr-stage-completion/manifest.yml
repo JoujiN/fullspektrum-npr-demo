@@ -1,0 +1,16 @@
+name: npr-stage-completion
+description: >
+  Blocks NPR profile synthesis until the onboarding transcript has covered all
+  six configured stages and the minimum total answer count has been reached.
+version: "0.1.0"
+exec: ./gate.py
+timeout: 10s
+policy:
+  minimum_total_answers: 32
+inputs:
+  - name: session_state
+    member: npr-onboarding-lead
+    output_key: session-state
+  - name: transcript
+    member: npr-onboarding-lead
+    output_key: transcript

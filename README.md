@@ -8,7 +8,7 @@ FlowState stays the generic runtime and should remain untouched by this repo. Th
 
 - FlowState backend binary built from a pinned FlowState ref and run with systemd on the VPS.
 - FlowState config and data under `/var/lib/fullspektrum/flowstate`.
-- FullSpektrum NPR agents, skills, swarms, schemas, and generated FlowState config from this repo.
+- FullSpektrum NPR agents, skills, swarms, schemas, gates, and generated FlowState config from this repo.
 - Qdrant as an optional private Docker Compose sidecar bound to `127.0.0.1`.
 - FlowState web UI hosted separately on Vercel.
 - Ollama as an optional external service; GPU placement is handled outside this repo.

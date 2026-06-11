@@ -1,0 +1,7 @@
+name: personal-data-security
+description: Detects and handles UK personal data patterns in strip or block mode.
+version: "0.2.0"
+exec: ./gate.py
+timeout: 5s
+policy:
+  mode: strip

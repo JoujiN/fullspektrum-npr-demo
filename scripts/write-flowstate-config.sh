@@ -17,8 +17,17 @@ mkdir -p "$CONFIG_DIR/agents" "$CONFIG_DIR/skills" "$CONFIG_DIR/swarms" "$CONFIG
 sync_dir() {
   src="$1"
   dest="$2"
+  case "$dest" in
+    "$CONFIG_DIR"/*) ;;
+    *)
+      printf 'refusing to sync outside config dir: %s\n' "$dest" >&2
+      exit 1
+      ;;
+  esac
+
+  rm -rf "$dest"
+  mkdir -p "$dest"
   if [ -d "$src" ]; then
-    mkdir -p "$dest"
     cp -R "$src/." "$dest/"
   fi
 }
@@ -27,14 +36,30 @@ sync_dir "$ASSET_ROOT/agents" "$CONFIG_DIR/agents"
 sync_dir "$ASSET_ROOT/skills" "$CONFIG_DIR/skills"
 sync_dir "$ASSET_ROOT/swarms" "$CONFIG_DIR/swarms"
 sync_dir "$ASSET_ROOT/schemas" "$CONFIG_DIR/schemas"
+sync_dir "$ASSET_ROOT/gates" "$CONFIG_DIR/gates"
 
 rm -f "$CONFIG_TMP"
 cat > "$CONFIG_TMP" <<CONFIG
 providers:
-  default: anthropic
+  default: zai
   anthropic:
-    model: "${ANTHROPIC_MODEL:-claude-sonnet-4-20250514}"
+    api_key: "${ZAI_API_KEY}"
+    host: ""
+    model: "${ZAI_MODEL:-glm-4.6}"
+    oauth:
+        client_id: ""
+        enabled: false
+        scopes: ""
+        token_file: ""
+        use_oath: false
+    plan: coding
 CONFIG
+# cat > "$CONFIG_TMP" <<CONFIG
+# providers:
+#   default: anthropic
+#   anthropic:
+#     model: "${ANTHROPIC_MODEL:-claude-sonnet-4-20250514}"
+# CONFIG
 
 if [ -n "${OLLAMA_HOST:-}" ]; then
   cat >> "$CONFIG_TMP" <<CONFIG

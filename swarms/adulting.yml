@@ -1,0 +1,32 @@
+schema_version: "1.0.0"
+id: adulting
+description: >
+  Neurodivergent-aware life-admin swarm for adults. It turns avoided admin
+  piles into a low-shame, consequence-aware action plan: triage first, then
+  bill tracking, deadline mapping, and optional formal correspondence.
+swarm_type: orchestration
+
+lead: life-admin-lead
+
+members:
+  - bill-tracker
+  - deadline-scanner
+  - letter-drafter
+
+harness:
+  parallel: false
+  gates:
+    - name: admin-item-validator
+      kind: ext:admin-item-validator
+      when: post-member
+      target: life-admin-lead
+      output_key: tasks
+
+    - name: personal-data-security
+      kind: ext:personal-data-security
+      when: post
+      policy:
+        mode: strip
+
+context:
+  chain_prefix: adulting

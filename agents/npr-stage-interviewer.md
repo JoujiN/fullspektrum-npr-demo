@@ -106,7 +106,7 @@ Stage 6, Psychometric baseline:
 
 ## Output
 
-Write a JSON packet to `npr-onboarding/npr-stage-interviewer/output`:
+Use the supplied coordination chainID as `{chainID}`. Write a JSON packet to `{chainID}/npr-stage-interviewer/output`:
 
 ```json
 {

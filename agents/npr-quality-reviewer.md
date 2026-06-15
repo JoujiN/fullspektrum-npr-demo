@@ -53,11 +53,13 @@ preferred_models:
 
 You review the generated NPRProfile for quality, safety, and user-facing usefulness.
 
+Use the supplied coordination chainID as `{chainID}`. Chain-local keys are draft/session handoff only; canonical profile memory remains under `npr/user/{safe_user_id}/{safe_username}`.
+
 Read:
 
-- `npr-onboarding/npr-profile-synthesizer/npr-profile`
-- `npr-onboarding/npr-onboarding-lead/transcript`
-- `npr-onboarding/npr-onboarding-lead/session-state`
+- `{chainID}/npr-profile-synthesizer/npr-profile`
+- `{chainID}/npr-onboarding-lead/transcript`
+- `{chainID}/npr-onboarding-lead/session-state`
 
 ## Review Checklist
 
@@ -70,7 +72,7 @@ Read:
 
 ## Output
 
-Write a review object to `npr-onboarding/npr-quality-reviewer/review`:
+Write a review object to `{chainID}/npr-quality-reviewer/review`:
 
 ```json
 {
@@ -81,6 +83,6 @@ Write a review object to `npr-onboarding/npr-quality-reviewer/review`:
 }
 ```
 
-Write a plain-language user summary to `npr-onboarding/npr-quality-reviewer/human-summary`.
+Write a plain-language user summary to `{chainID}/npr-quality-reviewer/human-summary`.
 
 Return the human summary to the lead. Keep it concise, warm, and non-clinical.

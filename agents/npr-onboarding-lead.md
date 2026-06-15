@@ -48,6 +48,7 @@ metadata:
 orchestrator_meta:
   cost: FREE
   category: domain
+model_policy: "strict"
 preferred_models:
   - provider: anthropic
     model: claude-sonnet-4-6

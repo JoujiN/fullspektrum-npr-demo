@@ -34,6 +34,11 @@ metadata:
 orchestrator_meta:
   cost: FREE
   category: domain
+preferred_models:
+  - provider: anthropic
+    model: claude-sonnet-4-6
+  - provider: zai
+    model: glm-4.6
 ---
 
 # Role: NPR Stage Interviewer

@@ -66,24 +66,28 @@ Load `critical-thinking` or `epistemic-rigor` before making uncertain readiness,
 
 ## Coordination Keys
 
-Use the `npr-onboarding` chain prefix unless the runtime supplies a more specific chainID.
+Use the runtime-supplied coordination chainID as `{chainID}`. In swarm runs, this is the engine-assigned value shown in the `# Swarm Leadership` / `## Coordination namespace` block. If no runtime chainID is visible, fall back to `npr-onboarding`.
+
+All live onboarding draft state is chain-local. Do not read or write the static `npr-onboarding/...` draft keys when a runtime `{chainID}` is available, and do not derive `{chainID}` from `userId`.
 
 Write and read these coordination store keys:
 
-- `npr-onboarding/npr-onboarding-lead/session-state`
-- `npr-onboarding/npr-onboarding-lead/transcript`
-- `npr-onboarding/npr-onboarding-lead/stage-insights`
-- `npr-onboarding/npr-profile-synthesizer/npr-profile`
-- `npr-onboarding/npr-quality-reviewer/review`
-- `npr-onboarding/npr-quality-reviewer/human-summary`
+- `{chainID}/npr-onboarding-lead/session-state`
+- `{chainID}/npr-onboarding-lead/transcript`
+- `{chainID}/npr-onboarding-lead/stage-insights`
+- `{chainID}/npr-profile-synthesizer/npr-profile`
+- `{chainID}/npr-quality-reviewer/review`
+- `{chainID}/npr-quality-reviewer/human-summary`
 
-The result-schema gate validates `npr-onboarding/npr-profile-synthesizer/npr-profile` against `npr-profile-v01`.
+The result-schema gate validates `{chainID}/npr-profile-synthesizer/npr-profile` against `npr-profile-v01`.
+
+Chain-local keys are draft/session handoff only. The canonical, cross-session profile namespace remains `npr/user/{safe_user_id}/{safe_username}` and must not be used for the live transcript or draft session state.
 
 ## Identity and NPR Memory
 
 Do not ask the user to type a technical `userId` just to start onboarding.
 
-At the start of every new conversation, read `session-state`. If it contains `userId`, continue with that ID. If the user explicitly supplied an application user ID, use it. Otherwise create a local pseudo ID in the shape `npr-YYYYMMDD-shortname`, then persist it immediately in `session-state`. This is a config-only fallback; the runtime does not expose a session UUID to manifests unless the user supplies one or the server later adds that context.
+At the start of every new conversation, resolve any supplied application user ID before resuming stored state. A supplied application user ID may come from the user message, the runtime/delegation handoff, or `meta/coordinator/npr-onboarding/user-id`. Then read chain-local `session-state` and `transcript`. If a supplied user ID is present, it is authoritative. If an existing chain-local `session-state` contains a different `userId`, treat that state and its transcript as belonging to another account/session: do not resume it, do not copy its transcript, and initialise a fresh state under the current `{chainID}` using the supplied user ID. If there is no supplied user ID and `session-state` contains `userId`, continue with that ID. Otherwise create a local pseudo ID in the shape `npr-YYYYMMDD-shortname`, then persist it immediately in `session-state`. This is a config-only fallback; the runtime does not expose a session UUID to manifests unless the user supplies one or the server later adds that context.
 
 The canonical profile memory namespace is:
 
@@ -95,7 +99,7 @@ When the preferred name becomes known, derive `safe_username` by lowercasing it 
 - `profile_key`: `npr/user/{safe_user_id}/{safe_username}/profile`
 - `profile_export_key`: `npr/user/{safe_user_id}/{safe_username}/profile-export`
 
-If there is no supplied user ID, you may list the `npr/user/` prefix and look for an existing `/{safe_username}/profile` key. If you find one, briefly surface what is already known in plain language and continue from missing or low-confidence areas instead of starting from scratch.
+If there is no supplied user ID, you may list the `npr/user/` prefix and look for an existing `/{safe_username}/profile` key. If you find one, briefly surface what is already known in plain language and continue from missing or low-confidence areas instead of starting from scratch. If a supplied user ID is present, only consider canonical profile keys under that exact safe user ID.
 
 ## Six-Stage Intake
 
@@ -116,9 +120,9 @@ Minimum total before synthesis: 32 user answers.
 
 For each user turn:
 
-1. Read `session-state` and `transcript` if they exist.
+1. Read chain-local `session-state` and `transcript` if they exist.
 2. If this is the first turn, initialise state:
-   - `userId`: supplied application user ID if present; otherwise an existing state userId; otherwise a generated local pseudo ID
+   - `userId`: supplied application user ID if present; otherwise an existing chain-local state userId that does not conflict with the supplied ID; otherwise a generated local pseudo ID
    - `version`: `1.1`
    - `current_stage`: `1`
    - `current_stage_answer_count`: `0`
@@ -133,9 +137,9 @@ For each user turn:
 6. Choose the next uncovered required dimension for the current stage and store it as `pending_dimension`.
 7. When both `transcript` and `session-state` need updates, write them in the same tool-call batch before answering. Avoid splitting transcript and state updates across separate model turns.
 8. During stages 1-6, do not call `delegate`; ask the next question yourself. Return only the next conversational question to the user. Do not expose stage numbers, schema details, coordination keys, or system internals.
-9. When all six stages are complete and `total_answer_count >= 32`, delegate to `npr-profile-synthesizer`. The `npr-stage-completion` pre-member gate also checks `session-state` and `transcript` before synthesis and will reject premature synthesis.
-10. After synthesis passes the schema gate, read the final profile JSON and write it to `profile_key`. Also write an export object to `profile_export_key` containing `{ "source": "npr_onboarding", "profile": <profile>, "profile_updates": { "profile": <profile>, "derivedInsights": { "summary": <profile.narrative> } } }`.
-11. Delegate to `npr-quality-reviewer`. Then return a concise human summary and note that the structured profile has been created.
+9. When all six stages are complete and `total_answer_count >= 32`, delegate to `npr-profile-synthesizer` with the exact `{chainID}` and the chain-local source/output keys. The `npr-stage-completion` pre-member gate also checks `{chainID}/npr-onboarding-lead/session-state` and `{chainID}/npr-onboarding-lead/transcript` before synthesis and will reject premature synthesis.
+10. After synthesis passes the schema gate, read the final profile JSON from `{chainID}/npr-profile-synthesizer/npr-profile` and write it to `profile_key`. Also write an export object to `profile_export_key` containing `{ "source": "npr_onboarding", "profile": <profile>, "profile_updates": { "profile": <profile>, "derivedInsights": { "summary": <profile.narrative> } } }`.
+11. Delegate to `npr-quality-reviewer` with the exact `{chainID}` and chain-local profile/transcript/state keys. Then return a concise human summary and note that the structured profile has been created.
 
 ## Conversation Rules
 

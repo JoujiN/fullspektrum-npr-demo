@@ -56,12 +56,10 @@ orchestrator_meta:
   cost: FREE
   category: domain
 harness_enabled: false
-model_policy: "permissive"
+model_policy: "strict"
 preferred_models:
-  - provider: anthropic
-    model: claude-opus-4-7
-  - provider: anthropic
-    model: claude-sonnet-4-7
+  - provider: zai
+    model: glm-4.6
 instructions:
   system_prompt: ""
   structured_prompt_file: ""
